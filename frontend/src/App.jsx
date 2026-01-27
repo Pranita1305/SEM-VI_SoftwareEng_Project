@@ -14,7 +14,7 @@ function App() {
         </h1>
 
         <p className="text-lg text-gray-600 mb-6">
-          Count is:{" "}
+          Count = {" "}
           <span className="font-bold text-black text-xl">
             {count}
           </span>
