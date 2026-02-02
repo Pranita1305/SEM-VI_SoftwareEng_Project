@@ -1,0 +1,46 @@
+@startuml
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+
+actor "Admin" as Admin
+actor "User" as User
+actor "Chatbot" as Bot
+actor "<<Service>>\nAuthentication Service" as Auth
+actor "<<Service>>\nWeather Data Service" as Weather
+
+rectangle "<<Subsystem>> SRDAPO System" {
+
+  (Login / Register) as Login
+  (View Demand Forecast) as ViewDemand
+  (View Surge Pricing) as ViewPrice
+  (View Heatmap) as Heatmap
+  (Chat Query) as Chat
+  (Manage System) as Manage
+}
+
+' Actor Associations
+Admin --> Login
+Admin --> ViewDemand
+Admin --> ViewPrice
+Admin --> Heatmap
+Admin --> Manage
+
+User --> Login
+User --> ViewDemand
+User --> ViewPrice
+User --> Heatmap
+
+Bot --> Chat
+
+Auth --> Login
+Weather --> ViewDemand
+
+' Include Relationships
+ViewDemand ..> Login : <<include>>
+ViewPrice ..> Login : <<include>>
+Heatmap ..> Login : <<include>>
+Manage ..> Login : <<include>>
+Chat ..> ViewDemand : <<include>>
+
+@enduml
