@@ -100,3 +100,82 @@
      - Provide weather forecasts
      - Feed data into ML models for demand prediction
    - **Integration:** REST API calls
+
+   ---
+
+## Relationships in the Diagram
+
+### Association Relationships (Solid Lines):
+- Connect actors to the use cases they interact with
+- Admin can access all use cases
+- User can access view-only use cases
+- Chatbot interacts with Chat Query use case
+
+### Include Relationships (Dashed Arrows with <<include>>):
+- **Login/Register** is included by all protected use cases
+- **Chat Query** includes View Demand and View Pricing for answering questions
+
+### Service Relationships (Dashed Lines with <<authenticates>> or <<provides data>>):
+- Authentication Service validates Login/Register
+- Weather Data Service provides input to View Demand Forecast
+
+---
+
+## System Boundary
+
+The system boundary encompasses:
+- All use cases that are part of the SRDAPO platform
+- Internal business logic for forecasting and pricing
+- API endpoints
+- Database operations
+
+External to the boundary:
+- Human actors (Admin, User)
+- Chatbot interface
+- External services (Authentication, Weather Data)
+
+---
+
+## Key Technical Components (Not shown in Use Case but part of system)
+
+### Backend:
+- FastAPI framework
+- MongoDB database
+- APScheduler for automated predictions
+
+### ML Models:
+- SARIMA for short-term forecasting
+- XGBoost for time-based predictions
+- LSTM for long-term patterns
+
+### Frontend:
+- React.js with Tailwind CSS
+- Chart.js/Recharts for visualizations
+- Leaflet/Mapbox for heatmaps
+
+---
+
+## Design Rationale
+
+The use case diagram focuses on:
+1. **User-centric design:** Clear separation between Admin and User roles
+2. **Simplicity:** Only essential use cases shown
+3. **External integrations:** Services shown as actors to highlight dependencies
+4. **Security:** Authentication included in all protected operations
+5. **Modularity:** Each use case represents a distinct functionality
+
+This design balances completeness with clarity, avoiding over-complexity while capturing all essential system behaviors.
+
+---
+
+## Comparison with Given Example (Online Shopping System)
+
+**Similarities:**
+- Clear actor-use case associations
+- Include relationships for common operations (login)
+- External service actors
+
+**Differences:**
+- SRDAPO focuses on data visualization and ML predictions
+- More emphasis on real-time data and forecasting
+- Chatbot as a distinct interaction pattern
