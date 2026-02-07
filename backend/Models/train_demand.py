@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Train a ride demand prediction model."""
+"""Train a ride and traffic demand prediction model."""
 
 from __future__ import annotations
 
