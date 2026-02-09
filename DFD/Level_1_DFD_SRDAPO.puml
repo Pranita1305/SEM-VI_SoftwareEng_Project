@@ -1,0 +1,50 @@
+@startuml
+left to right direction
+
+actor Admin
+actor User
+actor Chatbot
+actor "Weather Service" as Weather
+actor "Authentication Service" as Auth
+
+' Processes
+rectangle "Authentication Module" as P1
+rectangle "Demand Forecasting Engine" as P2
+rectangle "Pricing Optimization Engine" as P3
+rectangle "Visualization Module" as P4
+rectangle "Chatbot Query Handler" as P5
+
+' Data Stores
+database "User Database" as D1
+database "Historical Ride Data" as D2
+database "Prediction Results" as D3
+
+' Authentication Flow
+Admin --> P1 : Login/Register data
+User --> P1 : Login/Register data
+P1 --> Auth : Credential verification
+Auth --> P1 : Auth status
+P1 --> D1 : Store/Retrieve user info
+
+' Demand Forecasting
+Weather --> P2 : Weather data
+D2 --> P2 : Historical ride data
+P2 --> D3 : Demand predictions
+
+' Pricing Optimization
+D3 --> P3 : Demand levels
+P3 --> D3 : Surge pricing factors
+
+' Visualization
+D3 --> P4 : Demand & pricing data
+Admin --> P4 : View request
+User --> P4 : View request
+P4 --> Admin : Heatmaps & charts
+P4 --> User : Heatmaps & charts
+
+' Chatbot
+Chatbot --> P5 : Natural language query
+P5 --> D3 : Fetch insights
+P5 --> Chatbot : Textual response
+
+@enduml

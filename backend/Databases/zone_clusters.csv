@@ -1,0 +1,11 @@
+zone_id,zone_name,lat,lon,cluster_id,avg_daily_demand
+1,Indiranagar,12.9784,77.6408,1,1108
+2,Whitefield,12.9698,77.7499,1,1645
+3,Koramangala,12.9352,77.6245,2,1283
+4,MG Road,12.9757,77.605,1,1784
+5,Electronic City,12.8452,77.6602,1,1421
+6,Hebbal,13.0358,77.597,3,1939
+7,BTM Layout,12.9166,77.6101,1,1457
+8,Rajajinagar,12.9915,77.5545,1,709
+9,Marathahalli,12.9592,77.6974,3,1849
+10,JP Nagar,12.901,77.5855,3,1975
