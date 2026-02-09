@@ -1,0 +1,81 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' ----------------- Classes -----------------
+
+class User {
+  - userId : String
+  - name : String
+  - email : String
+  - passwordHash : String
+  - role : String
+  + login() : boolean
+  + viewDemand() : void
+  + viewPricing() : void
+  + viewHeatmap() : void
+}
+
+class Admin {
+  - adminId : String
+  + manageSystem() : void
+  + viewAnalytics() : void
+  + generateReports() : void
+}
+
+class AuthenticationService {
+  - jwtSecretKey : String
+  - tokenExpiryTime : int
+  + authenticateUser() : boolean
+  + generateToken() : String
+  + validateToken() : boolean
+}
+
+class WeatherService {
+  - apiKey : String
+  - weatherProvider : String
+  + fetchWeatherData() : WeatherData
+}
+
+class DemandForecastingEngine {
+  - modelType : String
+  - historicalData : Dataset
+  + predictDemand() : int
+  + trainModel() : void
+}
+
+class PricingEngine {
+  - baseFare : float
+  - surgeMultiplier : float
+  + calculateSurgePrice() : float
+  + updatePricingRules() : void
+}
+
+class VisualizationService {
+  - mapProvider : String
+  + generateHeatmap() : void
+  + generateCharts() : void
+}
+
+class ChatbotService {
+  - chatbotModel : String
+  + processQuery() : String
+  + fetchInsights() : String
+}
+
+' ----------------- Relationships -----------------
+
+Admin --|> User : inherits
+
+User "1" --> "1" AuthenticationService : authenticates
+AuthenticationService --> User : validates
+
+DemandForecastingEngine --> WeatherService : uses
+PricingEngine --> DemandForecastingEngine : depends on
+
+VisualizationService --> DemandForecastingEngine : displays data from
+VisualizationService --> PricingEngine : displays pricing
+
+ChatbotService --> DemandForecastingEngine : queries
+ChatbotService --> PricingEngine : queries
+
+@enduml
