@@ -1,0 +1,18 @@
+# ML artifacts
+backend/Models/artifacts/
+*.joblib
+
+# Python
+venv/
+__pycache__/
+
+# Node
+node_modules/
+
+# Build
+dist/
+build/
+target/
+
+# Env
+.env
