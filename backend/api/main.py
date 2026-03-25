@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.api.config import get_settings
+from backend.api.routes.predictions import router as predictions_router
+from backend.api.routes.chatbot import router as chatbot_router
 from backend.auth.routes import router as auth_router
+
+settings = get_settings()
 
 app = FastAPI(
     title="SRDAPO API",
@@ -13,11 +18,11 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# CORS – allow all origins in development; restrict in production
+# CORS
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,7 +31,9 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
-app.include_router(auth_router)
+app.include_router(auth_router)          # /auth/signup  /auth/login  /auth/me
+app.include_router(predictions_router)   # /predictions
+app.include_router(chatbot_router)       # /chatbot/query
 
 
 # ---------------------------------------------------------------------------

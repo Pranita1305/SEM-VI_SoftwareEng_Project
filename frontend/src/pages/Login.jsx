@@ -13,7 +13,7 @@ export default function Login() {
     setTimeout(() => {
       localStorage.setItem("token", "dummy-jwt-token");
       setLoading(false);
-      navigate("/");
+      navigate("/dashboard");
     }, 800);
   };
 

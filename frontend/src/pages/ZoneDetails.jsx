@@ -1,19 +1,17 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import DemandChart from "../components/DemandChart";
 import StatCard from "../components/StatCard";
 
 const ZONE_DATA = {
-  1: { name: "Koramangala", demand: 120, surge: 1.5,  status: "High" },
-  2: { name: "Indiranagar",     demand: 80,  surge: 1.0,  status: "Normal" },
-  3: { name: "Sadashivanagar",  demand: 200, surge: 2.2,  status: "Critical" },
-  4: { name: "Jayanagar",       demand: 160, surge: 1.8,  status: "High" },
-  5: { name: "Hebbal",          demand: 45,  surge: 1.0,  status: "Normal" },
-  6: { name: "Whitefield",      demand: 95,  surge: 1.3,  status: "Moderate" },
+  1: { name: "Koramangala", demand: 120, surge: 1.5, status: "High"     },
+  2: { name: "Indiranagar",  demand: 80,  surge: 1.0, status: "Normal"   },
+  3: { name: "Shiwala",      demand: 200, surge: 2.2, status: "Critical" },
+  4: { name: "Jayanagar",    demand: 160, surge: 1.8, status: "High"     },
 };
 
 const HISTORY = [
-  { time: "10AM", demand: 50 },
-  { time: "11AM", demand: 80 },
+  { time: "10AM", demand: 50  },
+  { time: "11AM", demand: 80  },
   { time: "12PM", demand: 120 },
   { time: "1PM",  demand: 150 },
   { time: "2PM",  demand: 135 },
@@ -22,6 +20,7 @@ const HISTORY = [
 
 export default function ZoneDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const zone = ZONE_DATA[id] ?? { name: `Zone ${id}`, demand: 150, surge: 2.0, status: "Unknown" };
 
   const statusColors = {
@@ -35,43 +34,69 @@ export default function ZoneDetails() {
 
   return (
     <div style={{ padding: "2rem", maxWidth: 1100, margin: "0 auto" }}>
-      {/* Breadcrumb */}
+      {/* Header row */}
       <div className="animate-fade-in" style={{ marginBottom: "1.5rem" }}>
+        {/* Back link */}
         <Link
-          to="/"
-          style={{
-            color: "var(--text-2)",
-            textDecoration: "none",
-            fontSize: "0.875rem",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.3rem",
-            transition: "color 0.2s",
-          }}
-          onMouseEnter={(e) => e.target.style.color = "var(--accent-blue)"}
-          onMouseLeave={(e) => e.target.style.color = "var(--text-2)"}
+          to="/dashboard"
+          style={{ color: "var(--text-2)", textDecoration: "none", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.3rem", transition: "color 0.2s" }}
+          onMouseEnter={e => e.target.style.color = "var(--accent-blue)"}
+          onMouseLeave={e => e.target.style.color = "var(--text-2)"}
         >
           ← Dashboard
         </Link>
-        <h1 style={{ margin: "0.4rem 0 0", fontSize: "1.6rem", fontWeight: 700 }}>
-          Zone {id}{zone.name ? ` — ${zone.name}` : ""}
-        </h1>
-        <span
-          style={{
-            display: "inline-block",
-            marginTop: "0.4rem",
-            padding: "2px 12px",
-            borderRadius: 999,
-            fontSize: "0.78rem",
-            fontWeight: 600,
-            color: statusColor,
-            background: `${statusColor}18`,
-            border: `1px solid ${statusColor}40`,
-          }}
-        >
-          {zone.status} Demand
-        </span>
+
+        {/* Title + Zone picker */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.85rem", marginTop: "0.5rem" }}>
+          <h1 style={{ margin: 0, fontSize: "1.6rem", fontWeight: 700, flex: "0 0 auto" }}>
+            Zone Details
+          </h1>
+
+          {/* Dropdown */}
+          <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+            <select
+              value={id}
+              onChange={e => navigate(`/zone/${e.target.value}`)}
+              style={{
+                background: "rgba(8,13,30,0.85)",
+                border: "1px solid rgba(79,156,249,0.3)",
+                borderRadius: 10,
+                color: "var(--text-1)",
+                padding: "0.45rem 2.2rem 0.45rem 0.9rem",
+                fontFamily: "inherit",
+                fontSize: "0.92rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                outline: "none",
+                appearance: "none",
+                WebkitAppearance: "none",
+                transition: "border-color 0.2s, box-shadow 0.2s",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234f9cf9' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.7rem center",
+              }}
+              onFocus={e => { e.target.style.borderColor = "var(--accent-blue)"; e.target.style.boxShadow = "0 0 0 3px rgba(79,156,249,0.18)"; }}
+              onBlur={e  => { e.target.style.borderColor = "rgba(79,156,249,0.3)"; e.target.style.boxShadow = "none"; }}
+            >
+              {Object.entries(ZONE_DATA).map(([zid, z]) => (
+                <option key={zid} value={zid} style={{ background: "#0a1228" }}>
+                  Zone {zid} — {z.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status badge */}
+          <span style={{
+            padding: "0.3rem 0.85rem", borderRadius: 999,
+            fontSize: "0.78rem", fontWeight: 600,
+            color: statusColor, background: `${statusColor}18`, border: `1px solid ${statusColor}40`,
+          }}>
+            {zone.status} Demand
+          </span>
+        </div>
       </div>
+
 
       {/* Stat Cards */}
       <div
