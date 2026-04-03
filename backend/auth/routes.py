@@ -15,6 +15,13 @@ from ..auth.dependencies import get_current_user
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
+def _mongo_unavailable() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Database is currently unavailable. Please try again later.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # POST /auth/signup
 # ---------------------------------------------------------------------------
@@ -35,8 +42,12 @@ async def signup(user: UserCreate):
     """
     users = get_user_collection()
 
-    # Check for duplicate email
-    existing = await users.find_one({"email": user.email})
+    try:
+        # Check for duplicate email
+        existing = await users.find_one({"email": user.email})
+    except Exception:
+        raise _mongo_unavailable()
+
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -49,7 +60,10 @@ async def signup(user: UserCreate):
         "hashed_password": hash_password(user.password),
         "role": "user",
     }
-    await users.insert_one(new_user)
+    try:
+        await users.insert_one(new_user)
+    except Exception:
+        raise _mongo_unavailable()
 
     # Issue a token so the frontend can authenticate immediately
     access_token = create_access_token(
@@ -75,8 +89,11 @@ async def login(credentials: UserLogin):
     """
     users = get_user_collection()
 
-    # Look up the user
-    db_user = await users.find_one({"email": credentials.email})
+    try:
+        # Look up the user
+        db_user = await users.find_one({"email": credentials.email})
+    except Exception:
+        raise _mongo_unavailable()
 
     # Verify existence and password (same error message to prevent email enumeration)
     if not db_user or not verify_password(credentials.password, db_user["hashed_password"]):
@@ -111,3 +128,4 @@ async def get_me(payload: dict = Depends(get_current_user)):
         email=payload.get("sub", ""),
         role=payload.get("role", "user"),
     )
+
