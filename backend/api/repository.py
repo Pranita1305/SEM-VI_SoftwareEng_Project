@@ -1,47 +1,59 @@
-from __future__ import annotations
-
+@@ -3,56 +3,56 @@ from __future__ import annotations
+import logging
 from typing import Any
 
 from pymongo.errors import PyMongoError
 
-from backend.api.data_seed import build_seed_predictions
 from backend.api.database import prediction_store
+
+logger = logging.getLogger(__name__)
 
 
 class PredictionRepository:
-    def __init__(self) -> None:
-        self._fallback_cache = build_seed_predictions()
+    """
+    Serves prediction documents.
 
-    def _seed_if_needed(self) -> str:
-        if not prediction_store.is_available():
-            return "fallback"
+    Priority order:
+      1. MongoDB (if available and populated)
+      2. In-memory cache populated by the scheduler / inference service
+    """
 
-        collection = prediction_store.collection()
-        if collection.count_documents({}) == 0:
-            collection.insert_many(build_seed_predictions())
-        return "mongodb"
-
-    def list_predictions(self, model_name: str | None = None) -> tuple[list[dict[str, Any]], str]:
-        source = "fallback"
+    def list_predictions(
+        self, model_name: str | None = None
+    ) -> tuple[list[dict[str, Any]], str]:
+        # 1️⃣ Try MongoDB first
         try:
-            source = self._seed_if_needed()
-            if source == "mongodb":
-                query = {"model_name": model_name} if model_name else {}
-                docs = list(
-                    prediction_store.collection().find(
-                        query,
-                        {"_id": 0},
-                    )
-                )
+            if prediction_store.is_available():
+                collection = prediction_store.collection()
+                collection = prediction_store.predictions_collection()
+                query: dict = {}
+                if model_name:
+                    query["model_name"] = model_name
+                docs = list(collection.find(query, {"_id": 0}))
                 if docs:
-                    return docs, source
+                    return docs, "mongodb"
         except PyMongoError:
-            pass
+            logger.debug("MongoDB read failed — using in-memory cache", exc_info=True)
 
-        docs = self._fallback_cache
+        # 2️⃣ Fall back to scheduler cache
+        from backend.api.scheduler import get_cached_predictions
+
+        docs = get_cached_predictions()
         if model_name:
-            docs = [doc for doc in docs if doc["model_name"].lower() == model_name.lower()]
-        return docs, source
+            docs = [d for d in docs if d.get("model_name", "").lower() == model_name.lower()]
+        return docs, "cache"
+
+    def update_predictions(self, docs: list[dict[str, Any]]) -> None:
+        """Persist predictions to MongoDB (best-effort)."""
+        try:
+            if prediction_store.is_available():
+                col = prediction_store.collection()
+                col = prediction_store.predictions_collection()
+                col.delete_many({})
+                col.insert_many(docs)
+                logger.info("Persisted %d prediction docs to MongoDB", len(docs))
+        except PyMongoError:
+            logger.warning("MongoDB write failed", exc_info=True)
 
 
 prediction_repository = PredictionRepository()
