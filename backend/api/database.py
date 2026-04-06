@@ -17,6 +17,7 @@ class MongoPredictionStore:
         settings = get_settings()
         self._settings = settings
         self._client: MongoClient | None = None
+        self._settings = get_settings()
         self._client: MongoClient | None = client
 
     def _connect(self) -> MongoClient:
@@ -93,4 +94,5 @@ class MongoPredictionStore:
         }
 
 
+prediction_store = MongoPredictionStore()
 prediction_store = MongoPredictionStore()

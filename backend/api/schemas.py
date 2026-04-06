@@ -1,4 +1,14 @@
 @@ -14,66 +14,87 @@ class ChatRequest(BaseModel):
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=2, examples=["Which zones have the highest demand?"])
+    model_name: str = Field(default="RandomForest", examples=["RandomForest"])
+
+
 class InsightCard(BaseModel):
     label: str
     value: str
@@ -24,6 +34,7 @@ class PredictionSummary(BaseModel):
     trend: str
     forecast: list[dict]
 
+
 class PredictionInputRequest(BaseModel):
     zone_id: int = Field(..., ge=1, description="Zone ID for prediction")
     hour: int = Field(..., ge=0, le=23, description="Hour of day (0-23)")
@@ -35,6 +46,16 @@ class PredictionInputRequest(BaseModel):
     humidity: float = Field(default=65.0, ge=0, le=100, description="Humidity percentage")
     rain_mm: float = Field(default=0.0, ge=0, description="Rainfall in millimeters")
     hourly_vehicle_count: int = Field(default=150, ge=0, description="Vehicles available per hour")
+    zone_id: int = Field(..., ge=1, description="Zone ID for prediction", examples=[3])
+    hour: int = Field(..., ge=0, le=23, description="Hour of day", examples=[18])
+    day_of_week: int = Field(default=2, ge=0, le=6, description="0=Monday")
+    month: int = Field(default=3, ge=1, le=12)
+    weather: str = Field(default="Clear", examples=["Clear"])
+    vehicle_type: str = Field(default="Cab", examples=["Cab"])
+    temperature: float = Field(default=28.0)
+    humidity: float = Field(default=65.0, ge=0, le=100)
+    rain_mm: float = Field(default=0.0, ge=0)
+    hourly_vehicle_count: int = Field(default=150, ge=0)
 
 
 class PredictionInputResponse(BaseModel):
@@ -55,6 +76,10 @@ class PricingRequest(BaseModel):
     distance_km: float = Field(..., gt=0, description="Trip distance in kilometres")
     hour: int | None = Field(default=None, ge=0, le=23, description="Hour of day (0-23). Defaults to current hour.")
     weather: str = Field(default="Clear", description="Weather condition: Clear, Rainy, Cloudy")
+    zone_id: int = Field(..., ge=1, le=10, examples=[3])
+    distance_km: float = Field(..., gt=0, examples=[8.5])
+    hour: int | None = Field(default=None, ge=0, le=23)
+    weather: str = Field(default="Clear", examples=["Rainy"])
 
 
 class PricingResponse(BaseModel):
