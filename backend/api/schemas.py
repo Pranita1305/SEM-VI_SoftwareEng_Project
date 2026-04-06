@@ -1,16 +1,4 @@
-from __future__ import annotations
-
-from pydantic import BaseModel, Field
-
-
-# ---------------------------------------------------------------------------
-# Chat
-# ---------------------------------------------------------------------------
-class ChatRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=500)
-    model_name: str = Field(default="RandomForest")
-
-
+@@ -14,66 +14,87 @@ class ChatRequest(BaseModel):
 class InsightCard(BaseModel):
     label: str
     value: str
@@ -35,6 +23,28 @@ class PredictionSummary(BaseModel):
     surge_multiplier: float
     trend: str
     forecast: list[dict]
+
+class PredictionInputRequest(BaseModel):
+    zone_id: int = Field(..., ge=1, description="Zone ID for prediction")
+    hour: int = Field(..., ge=0, le=23, description="Hour of day (0-23)")
+    day_of_week: int = Field(default=2, ge=0, le=6, description="Day of week where 0=Monday")
+    month: int = Field(default=3, ge=1, le=12, description="Month number (1-12)")
+    weather: str = Field(default="Clear", description="Weather condition: Clear, Rainy, Cloudy")
+    vehicle_type: str = Field(default="Cab", description="Vehicle type: Cab, Auto, Bike")
+    temperature: float = Field(default=28.0, description="Temperature in Celsius")
+    humidity: float = Field(default=65.0, ge=0, le=100, description="Humidity percentage")
+    rain_mm: float = Field(default=0.0, ge=0, description="Rainfall in millimeters")
+    hourly_vehicle_count: int = Field(default=150, ge=0, description="Vehicles available per hour")
+
+
+class PredictionInputResponse(BaseModel):
+    zone_id: int
+    zone_name: str
+    model_name: str
+    input_features: dict
+    predicted_traffic_index: float
+    predicted_demand: int
+    surge_multiplier: float
 
 
 # ---------------------------------------------------------------------------
@@ -76,4 +86,3 @@ class ZoneSummary(BaseModel):
 
 class ZoneDetail(ZoneSummary):
     forecast: list[dict] = Field(default_factory=list)
-
