@@ -16,6 +16,15 @@ class ChatbotService:
         predictions, source = prediction_repository.list_predictions(model_name=model_name)
         normalized = message.lower().strip()
 
+        if not predictions:
+            return ChatResponse(
+                answer="No prediction data is available right now. Please try again in a moment.",
+                intent="no_data",
+                source=source,
+                supporting_points=["Prediction data refreshes every hour."],
+                insights=[],
+            )
+
         zone = self._match_zone(predictions, normalized)
         hour_offset = self._extract_hour_offset(normalized)
 

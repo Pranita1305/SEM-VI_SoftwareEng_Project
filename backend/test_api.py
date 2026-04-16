@@ -90,23 +90,23 @@ print("=" * 60)
 print()
 
 test("1  Health check",                       "get",  "/",                   200)
-test("2  Predictions — no token (→ 403)",     "get",  "/predictions",        403)
+test("2  Predictions — no token (→ 401)",     "get",  "/predictions",        401)
 test("3  Predictions — with token",           "get",  "/predictions",        200, headers=AUTH)
 test("4  Zones list",                         "get",  "/zones",              200, headers=AUTH)
 test("5  Zone detail (zone 3)",               "get",  "/zones/3",            200, headers=AUTH)
 test("6  Zone not found (zone 99)",           "get",  "/zones/99",           404, headers=AUTH)
 test("7  Pricing estimate",                   "post", "/pricing/estimate",   200, headers=AUTH,
      json={"zone_id": 3, "distance_km": 8.5})
-test("8  Pricing — no token (→ 403)",        "post", "/pricing/estimate",   403,
+test("8  Pricing — no token (→ 401)",        "post", "/pricing/estimate",   401,
      json={"zone_id": 3, "distance_km": 8.5})
 test("9  Chatbot — high demand query",        "post", "/chatbot/query",      200, headers=AUTH,
      json={"message": "Which zones are in high demand right now?"})
 test("10 Chatbot — surge query",              "post", "/chatbot/query",      200, headers=AUTH,
      json={"message": "Is surge pricing active in Whitefield?"})
-test("11 Chatbot — no token (→ 403)",        "post", "/chatbot/query",      403,
+test("11 Chatbot — no token (→ 401)",        "post", "/chatbot/query",      401,
      json={"message": "hello"})
 test("12 Auth /me — with token",             "get",  "/auth/me",            200, headers=AUTH)
-test("13 Auth /me — no token (→ 403)",       "get",  "/auth/me",            403)
+test("13 Auth /me — no token (→ 401)",       "get",  "/auth/me",            401)
 # Signup/login need MongoDB; expect 503 when it's not running
 test("14 Auth signup — no MongoDB (→ 503)",  "post", "/auth/signup",        503,
      json={"email": "x@y.com", "password": "pass123"})
