@@ -4,6 +4,7 @@ import Heatmap from "../components/Heatmap";
 import StatCard from "../components/StatCard";
 import SurgeCard from "../components/SurgeCard";
 import DemandChart from "../components/DemandChart";
+import { zonesAPI } from "../services/api";
 
 /* ── Constants ─────────────────────────────────── */
 const CITIES = [
@@ -506,12 +507,39 @@ function SurgeLeaderboard({ zones }) {
 ═══════════════════════════════════════════════ */
 export default function Dashboard() {
   const navigate = useNavigate();
-  const zones = ZONES;
-  const timeCtx = getTimeContext();
+  const timeCtx  = getTimeContext();
 
-  const totalDemand = zones.reduce((s, z) => s + z.demand, 0);
-  const avgSurge = (zones.reduce((s, z) => s + z.surge, 0) / zones.length).toFixed(2);
-  const hotspotZone = zones.reduce((a, z) => (z.demand > (a?.demand ?? 0) ? z : a), null);
+  const [zones, setZones]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState("");
+
+  useEffect(() => {
+    zonesAPI.list()
+      .then((res) => setZones(res.data))
+      .catch(() => setError("Could not load zone data. Is the backend running?"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Adapt backend shape { zone_id, zone_name, current_demand, surge_multiplier } → { id, name, demand, surge }
+  const adaptedZones = zones.map((z) => ({
+    id:     z.zone_id,
+    name:   z.zone_name,
+    demand: z.current_demand ?? 0,
+    surge:  z.surge_multiplier ?? 1.0,
+    trend:  z.trend ?? "normal",
+  }));
+
+  const totalDemand  = adaptedZones.reduce((s, z) => s + z.demand, 0);
+  const avgSurge     = adaptedZones.length
+    ? (adaptedZones.reduce((s, z) => s + z.surge, 0) / adaptedZones.length).toFixed(2)
+    : "—";
+  const hotspotZone  = adaptedZones.reduce((a, z) => (z.demand > (a?.demand ?? 0) ? z : a), null);
+
+  // Build hourly-like chart from top zone forecast if available
+  const topZone = zones.find((z) => z.zone_id === hotspotZone?.id);
+  const hourlyData = topZone?.forecast?.length
+    ? topZone.forecast.map((pt) => ({ time: `+${pt.hour_offset}h`, demand: pt.predicted_demand }))
+    : HOURLY_DEMAND;
 
   return (
     <div style={{ padding: "1.75rem", maxWidth: 1400, margin: "0 auto" }}>
@@ -536,15 +564,21 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {error && (
+        <div style={{ padding: "0.85rem 1.2rem", borderRadius: 12, background: "rgba(249,116,84,0.1)", border: "1px solid rgba(249,116,84,0.3)", color: "#f97454", marginBottom: "1.5rem", fontSize: "0.875rem" }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {/* ── Quick Actions ─────────────────────────── */}
       <QuickActions />
 
       {/* ── Stat Cards ────────────────────────────── */}
       <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-        <StatCard title="Active Zones" value={zones.length} icon="🗺️" color="var(--accent-blue)" trend={{ up: true, label: "All online" }} />
-        <StatCard title="Total Demand" value={totalDemand} icon="🚖" color="var(--accent-vio)" trend={{ up: true, label: "+12% vs last hour" }} />
-        <StatCard title="Avg Surge" value={`${avgSurge}x`} icon="⚡" color="var(--yellow-mid)" trend={{ up: false, label: "Moderate pressure" }} />
-        <StatCard title="Hotspot" value={hotspotZone?.name ?? "—"} icon="🔥" color="var(--red-surge)" trend={{ up: true, label: `${hotspotZone?.demand ?? 0} rides` }} />
+        <StatCard title="Active Zones"  value={loading ? "…" : adaptedZones.length}          icon="🗺️" color="var(--accent-blue)"  trend={{ up: true,  label: "All online" }} />
+        <StatCard title="Total Demand"  value={loading ? "…" : totalDemand}                  icon="🚖" color="var(--accent-vio)"  trend={{ up: true,  label: "+live data" }} />
+        <StatCard title="Avg Surge"     value={loading ? "…" : `${avgSurge}x`}               icon="⚡" color="var(--yellow-mid)" trend={{ up: false, label: "Moderate pressure" }} />
+        <StatCard title="Hotspot"       value={loading ? "…" : (hotspotZone?.name ?? "—")}  icon="🔥" color="var(--red-surge)"  trend={{ up: true,  label: `${hotspotZone?.demand ?? 0} rides` }} />
       </div>
 
       {/* ── Ride Search ───────────────────────────── */}
@@ -557,10 +591,10 @@ export default function Dashboard() {
       `}</style>
       <div className="chart-row">
         <div className="glass" style={{ padding: "1.25rem 1.5rem" }}>
-          <SectionHeader title="📊 Demand Trend" sub="Hourly ride requests across Bangalore" />
-          <DemandChart data={HOURLY_DEMAND} />
+          <SectionHeader title="📊 Demand Trend" sub={topZone ? `Forecast for ${hotspotZone?.name}` : "Hourly ride requests"} />
+          <DemandChart data={hourlyData} />
         </div>
-        <SurgeLeaderboard zones={zones} />
+        <SurgeLeaderboard zones={adaptedZones} />
       </div>
 
 
@@ -568,15 +602,11 @@ export default function Dashboard() {
       <div style={{ marginBottom: "2rem" }}>
         <SectionHeader
           title="Zone Overview"
-          sub="Top active zones right now"
-          action={
-            <span style={{ fontSize: "0.78rem", color: "var(--text-2)" }}>
-              Click a card for details
-            </span>
-          }
+          sub={loading ? "Loading…" : `${adaptedZones.length} active zones`}
+          action={<span style={{ fontSize: "0.78rem", color: "var(--text-2)" }}>Click a card for details</span>}
         />
         <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
-          {zones.map(zone => (
+          {adaptedZones.map((zone) => (
             <SurgeCard key={zone.id} zone={zone} onClick={() => navigate(`/zone/${zone.id}`)} />
           ))}
         </div>
