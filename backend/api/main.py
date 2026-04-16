@@ -20,7 +20,6 @@ from backend.api.config import get_settings
 # ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
     format="%(asctime)s %(levelname)-8s %(name)s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -31,7 +30,6 @@ logger = logging.getLogger("srdapo")
 # Lifespan — startup / shutdown hooks
 # ---------------------------------------------------------------------------
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # noqa: ARG001
 async def lifespan(app: FastAPI):
     settings = get_settings()
     app.state.startup_checks = {
@@ -43,10 +41,8 @@ async def lifespan(app: FastAPI):
     scheduler = None
 
     # 1. Warm up ML models (trains from CSV on first call)
-    from backend.api.inference import warm_up
-
-    warm_up()
     try:
+        from backend.api.inference import warm_up
         warm_up()
         app.state.startup_checks["warm_up"] = {"ok": True, "error": None}
         logger.info("Warm up completed")
@@ -55,30 +51,8 @@ async def lifespan(app: FastAPI):
         logger.exception("Warm up failed")
 
     # 2. Generate initial predictions so the API has data immediately
-    from backend.api.scheduler import refresh_predictions
-
-    refresh_predictions()
-    logger.info("Initial predictions generated.")
-
-    # 3. Start APScheduler for periodic refresh
-    from apscheduler.schedulers.background import BackgroundScheduler
-
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(
-        refresh_predictions,
-        "interval",
-        minutes=settings.scheduler_interval_minutes,
-        id="refresh_predictions",
-        replace_existing=True,
-    )
-    scheduler.start()
-    logger.info(
-        "APScheduler started — refreshing predictions every %d min.",
-        settings.scheduler_interval_minutes,
-    )
-
-    yield  # ← app is running
     try:
+        from backend.api.scheduler import refresh_predictions
         refresh_predictions()
         app.state.startup_checks["initial_refresh"] = {"ok": True, "error": None}
         logger.info("Initial prediction refresh completed")
@@ -86,7 +60,9 @@ async def lifespan(app: FastAPI):
         app.state.startup_checks["initial_refresh"] = {"ok": False, "error": str(exc)}
         logger.exception("Initial prediction refresh failed")
 
+    # 3. Start APScheduler for periodic refresh
     try:
+        from backend.api.scheduler import refresh_predictions
         from apscheduler.schedulers.background import BackgroundScheduler
 
         scheduler = BackgroundScheduler()
@@ -99,7 +75,10 @@ async def lifespan(app: FastAPI):
         )
         scheduler.start()
         app.state.startup_checks["scheduler"] = {"ok": True, "error": None}
-        logger.info("Scheduler started")
+        logger.info(
+            "APScheduler started — refreshing predictions every %d min.",
+            settings.scheduler_interval_minutes,
+        )
     except Exception as exc:
         app.state.startup_checks["scheduler"] = {"ok": False, "error": str(exc)}
         logger.exception("Scheduler failed to start")
@@ -108,15 +87,12 @@ async def lifespan(app: FastAPI):
     if not app.state.ready:
         logger.error("API started with readiness failures: %s", app.state.startup_checks)
 
-    yield
-
-    if scheduler is not None:
-        scheduler.shutdown(wait=False)
-        logger.info("Scheduler stopped")
+    yield  # ← app is running
 
     # Shutdown
-    scheduler.shutdown(wait=False)
-    logger.info("APScheduler stopped.")
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
+        logger.info("APScheduler stopped.")
 
 
 # ---------------------------------------------------------------------------
@@ -131,8 +107,6 @@ app = FastAPI(
         "Backend API with JWT authentication, demand forecasting, "
         "dynamic pricing, zone intelligence, and chatbot."
     ),
-    version="1.0.0",
-    description="Smart Ride Demand Anticipation and Pricing Optimizer API",
     version="1.1.0",
     lifespan=lifespan,
 )
@@ -151,7 +125,6 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Global exception handler
 # ---------------------------------------------------------------------------
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
@@ -165,26 +138,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Routers
 # ---------------------------------------------------------------------------
 from backend.api.routes.predictions import router as predictions_router  # noqa: E402
-from backend.api.routes.chatbot import router as chatbot_router  # noqa: E402
-from backend.api.routes.pricing import router as pricing_router  # noqa: E402
-from backend.api.routes.zones import router as zones_router  # noqa: E402
-from backend.auth.routes import router as auth_router  # noqa: E402
-from backend.api.routes.chatbot import router as chatbot_router
-from backend.api.routes.predictions import router as predictions_router
-from backend.api.routes.pricing import router as pricing_router
-from backend.api.routes.zones import router as zones_router
-from backend.auth.routes import router as auth_router
+from backend.api.routes.chatbot import router as chatbot_router          # noqa: E402
+from backend.api.routes.pricing import router as pricing_router          # noqa: E402
+from backend.api.routes.zones import router as zones_router              # noqa: E402
+from backend.auth.routes import router as auth_router                    # noqa: E402
 
-app.include_router(auth_router)          # /auth/signup  /auth/login  /auth/me
-app.include_router(predictions_router)   # /predictions
-app.include_router(chatbot_router)       # /chatbot/query
-app.include_router(pricing_router)       # /pricing/estimate
-app.include_router(zones_router)         # /zones  /zones/{zone_id}
-app.include_router(auth_router)
-app.include_router(predictions_router)
-app.include_router(chatbot_router)
-app.include_router(pricing_router)
-app.include_router(zones_router)
+app.include_router(auth_router)         # /auth/signup  /auth/login  /auth/me
+app.include_router(predictions_router)  # /predictions
+app.include_router(chatbot_router)      # /chatbot/query
+app.include_router(pricing_router)      # /pricing/estimate
+app.include_router(zones_router)        # /zones  /zones/{zone_id}
 
 
 # ---------------------------------------------------------------------------
