@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.inference import compute_surge, get_zone_by_id, predict_demand, predict_traffic
 from backend.api.repository import prediction_repository
-from backend.api.schemas import PredictionSummary
 from backend.api.schemas import (
     PredictionInputRequest,
     PredictionInputResponse,
@@ -14,17 +14,24 @@ from backend.auth.dependencies import get_current_user
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 
-@router.get("", response_model=list[PredictionSummary])
+@router.get(
+    "",
+    response_model=list[PredictionSummary],
+    responses={401: {"description": "Invalid auth token"}, 403: {"description": "Missing auth token"}},
+)
 def list_prediction_summaries(
     model_name: str = "RandomForest",
     _user: dict = Depends(get_current_user),
 ) -> list[PredictionSummary]:
     docs, _ = prediction_repository.list_predictions(model_name=model_name)
     return docs
-    return docs
 
 
-@router.post("/predict", response_model=PredictionInputResponse)
+@router.post(
+    "/predict",
+    response_model=PredictionInputResponse,
+    responses={404: {"description": "Zone not found"}, 401: {"description": "Invalid auth token"}},
+)
 def predict_from_inputs(
     payload: PredictionInputRequest,
     _user: dict = Depends(get_current_user),
