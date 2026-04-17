@@ -1,8 +1,13 @@
+"""
+Auth routes — in-memory user store (no database required).
+
+Users are stored in a plain Python dict keyed by email.
+Data lives only for the lifetime of the server process — perfect for testing.
+"""
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..database import get_user_collection
 from ..auth.jwt_handler import (
     hash_password,
     verify_password,
@@ -14,12 +19,10 @@ from ..auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-
-def _mongo_unavailable() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="Database is currently unavailable. Please try again later.",
-    )
+# ---------------------------------------------------------------------------
+# In-memory user store  { email -> {email, hashed_password, role} }
+# ---------------------------------------------------------------------------
+_USERS: dict[str, dict] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -33,39 +36,25 @@ def _mongo_unavailable() -> HTTPException:
 )
 async def signup(user: UserCreate):
     """
-    Register a new user account.
+    Register a new user account (in-memory, no database needed).
 
     - Validates email uniqueness
-    - Hashes the password with bcrypt
-    - Stores the user in MongoDB
-    - Returns a JWT access token immediately (so the user is logged in right after signup)
+    - Hashes password with bcrypt
+    - Stores user in server memory
+    - Returns a JWT access token immediately
     """
-    users = get_user_collection()
-
-    try:
-        # Check for duplicate email
-        existing = await users.find_one({"email": user.email})
-    except Exception:
-        raise _mongo_unavailable()
-
-    if existing:
+    if user.email in _USERS:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email already exists.",
         )
 
-    # Persist the new user
-    new_user = {
-        "email": user.email,
+    _USERS[user.email] = {
+        "email":           user.email,
         "hashed_password": hash_password(user.password),
-        "role": "user",
+        "role":            "user",
     }
-    try:
-        await users.insert_one(new_user)
-    except Exception:
-        raise _mongo_unavailable()
 
-    # Issue a token so the frontend can authenticate immediately
     access_token = create_access_token(
         data={"sub": user.email, "role": "user"},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -83,19 +72,11 @@ async def signup(user: UserCreate):
 )
 async def login(credentials: UserLogin):
     """
-    Authenticate with email and password.
-
+    Authenticate with email and password (checks in-memory store).
     Returns a JWT access token on success.
     """
-    users = get_user_collection()
+    db_user = _USERS.get(credentials.email)
 
-    try:
-        # Look up the user
-        db_user = await users.find_one({"email": credentials.email})
-    except Exception:
-        raise _mongo_unavailable()
-
-    # Verify existence and password (same error message to prevent email enumeration)
     if not db_user or not verify_password(credentials.password, db_user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -119,13 +100,8 @@ async def login(credentials: UserLogin):
     summary="Get current authenticated user",
 )
 async def get_me(payload: dict = Depends(get_current_user)):
-    """
-    Returns the profile of the currently authenticated user.
-
-    Requires a valid Bearer token in the Authorization header.
-    """
+    """Returns the profile of the currently authenticated user."""
     return UserResponse(
         email=payload.get("sub", ""),
         role=payload.get("role", "user"),
     )
-
