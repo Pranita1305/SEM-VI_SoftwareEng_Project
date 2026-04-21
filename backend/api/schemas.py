@@ -1,4 +1,4 @@
-@@ -14,66 +14,87 @@ class ChatRequest(BaseModel):
+class ChatRequest(BaseModel):
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

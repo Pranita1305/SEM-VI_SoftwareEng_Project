@@ -95,4 +95,3 @@ class MongoPredictionStore:
 
 
 prediction_store = MongoPredictionStore()
-prediction_store = MongoPredictionStore()
