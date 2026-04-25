@@ -16,8 +16,13 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
+      // Don't redirect to login for chatbot requests —
+      // let the chatbot component handle it with offline fallback.
+      const url = err.config?.url || "";
+      if (!url.includes("/chatbot")) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(err);
   }

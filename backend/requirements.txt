@@ -42,7 +42,7 @@ narwhals==2.15.0
 numpy==2.4.1
 opt_einsum==3.4.0
 optree==0.18.0
-packaging @ file:///opt/miniconda3/conda-bld/packaging_1761049079150/work
+packaging
 pandas==2.3.3
 passlib==1.7.4
 patsy==1.0.2
